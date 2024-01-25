@@ -1,0 +1,306 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+% \usepackage[showframe]{geometry} %调整页边距showframe显示框架
+\usepackage{amsmath}  %数学环境
+\usepackage{paralist,bbding,pifont} %罗列环境
+\usepackage{lmodern}  %中文环境与amsmath格式冲突
+\usepackage{array,graphicx}  %插入表格、图片
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{appendix}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tocloft}  %目录
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\renewcommand\cftsecdotsep{\cftdotsep}
+\renewcommand\cftsecleader{\cftdotfill{\cftsecdotsep}}
+\renewcommand {\cftdot}{$ \cdot $}
+\renewcommand {\cftdotsep}{1.5}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[a4paper, portrait, margin=2.5cm]{geometry}
+\renewcommand{\baselinestretch}{1.25} %行间距取多倍行距（设置值为1.5）
+\setlength{\baselineskip}{20pt} 
+
+\usepackage{listings}%插入代码
+\usepackage{color}
+\lstset{%代码格式的配置
+extendedchars=false,            % Shutdown no-ASCII compatible
+language=Matlab,                % ！！！选择代码的语言
+basicstyle=\footnotesize\tt,    % the size of the fonts that are used for the code
+tabsize=3,                            % sets default tabsize to 3 spaces
+numbers=left,                   % where to put the line-numbers
+numberstyle=\tiny,              % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it's 1 each line
+                                % will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code   %
+keywordstyle=\color[rgb]{0,0,1},                % keywords
+commentstyle=\color[rgb]{0.133,0.545,0.133},    % comments
+stringstyle=\color[rgb]{0.627,0.126,0.941},      % strings
+backgroundcolor=\color{white}, % choose the background color. You must add \usepackage{color}
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,                   % adds a frame around the code
+captionpos=b,                   % sets the caption-position to bottom
+breaklines=true,                % sets automatic line breaking
+breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+title=\lstname,                 % show the filename of files included with \lstinputlisting;
+                                % also try caption instead of title
+mathescape=true,escapechar=?    % escape to latex with ?..?
+escapeinside={\%*}{*)},         % if you want to add a comment within your code
+%columns=fixed,                  % nice spacing
+%morestring=[m]',                % strings
+%morekeywords={%,...},%          % if you want to add more keywords to the set
+%    break,case,catch,continue,elseif,else,end,for,function,global,%
+%    if,otherwise,persistent,return,switch,try,while,...},%
+ }
+%% 页眉
+\usepackage{fancyhdr}
+\newcommand{\myname}{李佳}
+\newcommand{\myid}{2100010793}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\myid}
+\lhead{\myname}
+\cfoot{\thepage}
+
+%%%% Declare %%%
+\DeclareMathOperator{\Ran}{Ran}
+\DeclareMathOperator{\Dom}{Dom}
+\DeclareMathOperator{\Rank}{Rank}
+
+\newcommand{\md}{\mathrm{d}}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mbF}{\mathbb{F}}
+%%% Declare %%%
+\newtheorem{innercustomthm}{Problem}
+\newenvironment{prob}[1]
+{\renewcommand\theinnercustomthm{#1}\innercustomthm}
+{\endinnercustomthm}
+
+%%设置
+\title{偏微分方程数值解$\ \ $第一次上机报告}
+\author{李佳~2100010793}
+\date{}
+
+%%正文
+
+\begin{document}
+\zihao{-4}
+\maketitle
+\begin{section}{问题描述}
+    使用有限差分方法, 计算在半径为$R$的2维圆形区域薄膜上因受到负载(load) $p(x,y)$而
+    产生的挠度(deflection) $D(x,y)$, 其偏微分方程模型为
+    $$-T\nabla^2 D=p\quad in\ \Omega=\{(x,y)\ | x^2+y^2\leq R^2\}$$
+    其中$T$是膜上的张力(为常数), $p$是外部压力负载. 膜的边界没有挠度, 即$D|_{\partial\Omega}=0$.
+    一个局部的负载可以用一个Gaussian函数模拟:
+    $$p(x,y)=\frac{A}{2\pi\sigma}\exp\bigg(-\frac{1}{2}\big(\frac{x-x_0}{\sigma}\big)^2-\frac{1}{2}\big(\frac{y-y_0}{\sigma}\big)\bigg)$$
+    参数$A$是压力的振幅, $(x_0,y_0)$是负载最大值点, $\sigma$是压力$p$的"宽度". 我们取$(x_0,y_0)=(0,R_0)$, $0<R_0<R$.
+    
+    1. 分别绘制该问题中挠度(Deflection)和负载(Load)的等高线图和曲面图;
+
+    2. 在$y$轴上绘制挠度(Deflection)和负载(Load)的变化图.
+\end{section}
+\begin{section}{数值方法及分析}
+    \begin{subsection}{有限差分格式的构造}
+        可以先通过相似变换将$\Omega$变为$\Omega_0=\{(x,y)\ |\ x^2+y^2\leq 1\}$, 由此可得
+        $$-\nabla^2 u = p=\alpha \exp\bigg(\beta^2(x^2+(y-\bar{R}_0)^2)\bigg),$$
+        其中$u$为相似变换后的deflection $D$, $p$为相似变换并除以常数$T$后的load, 与之前的$p$混用. 为分析简单起见, 我们后面只使用记号$u,p$. 以及
+        $$\alpha=\frac{R^2A}{2\pi T\sigma},\beta=\frac{R}{\sqrt{2}\sigma},\bar{R}_0=\frac{R_0}{R}.$$
+        
+        对区域作极坐标变换$x=r\cos\theta,\ y=r\sin\theta$, 可得
+        $$-\mathcal{L} u:=-\frac{1}{r}(ru_r)_r -\frac{1}{r^2}u_{\theta\theta} = p(r,\theta)\quad in\ [0,1]\times[0,2\pi], $$
+        $$u|_{r=1}=0.$$
+
+        在$r-\theta$平面上建立均匀网格$\{(r_i,\theta_j)\ |\ r_i=ih_r,\theta_j=jh_\theta\}$, $h_r=1/N_r,h_\theta=2\pi/N_\theta$, $N_r,N_\theta\in\mathbb{N}_+$. 
+        对$\theta_j$, 我们定义$\theta_{j\pm N_\theta}:=\theta_j$. 这显然是良定义的. 记网格点$(r_i,\theta_j)$处的数值解为$U_{i,j}$. 注意到, $r=0$时, 不同的$\theta$对应的都是原点, 
+        因此构造格式时不必区分, 我们令$U_{0,j}=U_0,\forall j$.
+
+        对$i\neq 0,N$, 不断使用一个区间内的一阶中心差分算子逼近一阶导数, 可得差分格式:
+        $$\mathcal{L}_h U_{i,j}:=\frac{1}{r_i}\frac{1}{h_r}\bigg(r_{i+1/2}\frac{U_{i+1,j}-U_{i,j}}{h_r}-r_{i-1/2}\frac{U_{i,j}-U_{i-1,j}}{h_r}\bigg) + \frac{1}{r_i^2 h_\theta^2}(U_{i,j+1} - 2U_{i,j} + U_{i,j-1})$$ 
+        $$=\frac{1}{h_r^2}\bigg[(-2-\frac{2}{i^2h_\theta^2})U_{i,j} + (1+\frac{1}{2i})U_{i+1,j} + (1-\frac{1}{2i})U_{i-1,j} + \frac{1}{i^2h_\theta^2}U_{i,j+1} + \frac{1}{i^2h_\theta^2}U_{i,j-1}\bigg].$$
+        离散问题中, 要求$-\mathcal{L}_h U_{i,j} = p_{i,j}:=p(r_i,\theta_j)$.
+
+        对$i=N$, $r_i=1$, 则使用Dirichlet边界条件$U_{N,j}=0$.
+
+        对$i=0$, $r_i=0$, 即为原点, 可以用距其最近的圆周上的点的均值来构造差分格式, 可以定义
+        $$\mathcal{L}_h U_0 = \frac{1}{h_r^2}\bigg[ -U_0+\sum_{j=1}^{N\theta}\frac{1}{N_\theta}U_{1,j}\bigg],$$
+        离散问题中要求$-\mathcal{L}_hU_0 = -\frac{1}{4}p_0.$ 相容性分析中将知道, 这是相容的差分格式.
+
+        将离散问题写成紧凑的形式, 并将$U_0$的等式直接代入$i=1$的差分格式中, 可得矩阵表示 $AU=P$,
+        $$A=\frac{1}{h_r^2}\begin{pmatrix}
+            2I+\displaystyle\frac{T}{h_\theta^2} +\frac{\vec{1}\otimes\vec{1}^T}{2N_\theta} & \displaystyle-(1+\frac{1}{2\cdot 1})I  & & & \\
+            \displaystyle-(1-\frac{1}{2*2})I & 2I+\displaystyle\frac{T}{4h_\theta^2} & \displaystyle-(1+\frac{1}{2\cdot 2})I & & \\
+             & \ddots & \ddots & \ddots & \\
+             & & \displaystyle-(1-\frac{1}{2i})I & 2I+\displaystyle\frac{T}{i^2h_\theta^2} & \displaystyle-(1+\frac{1}{2\cdot 2i})I \\
+             & & & \ddots &\ddots \\
+             & & & \displaystyle-(1-\frac{1}{2(N_r-1)})I & 2I+\displaystyle\frac{T}{(N_r-1)^2h_\theta^2} 
+        \end{pmatrix}, $$
+        其中
+        $$T=\begin{pmatrix}
+            2 & -1 & 0 & 0 &\dots & -1 \\
+            -1 & 2 & -1 & 0 &\dots & 0 \\
+             & \ddots &\ddots &\ddots & & \\
+             -1 & 0 & \dots & 0 & -1 & 2 \\
+        \end{pmatrix}_{N_\theta\times N_\theta}, \vec{1} = [1,1,...,1]^T_{1\times N_\theta},$$
+        $$ U = [U_{1,1},U_{1,2},...,U_{1,N_\theta},U_{2,1},...,U_{2,N_\theta},...,U_{N_r-1,1},...,U_{N_r-1,N_\theta}]^T,$$
+        $$ P = [p_{1,1}-\frac{p_0}{8h_r^2},p_{1,2}-\frac{p_0}{8h_r^2},...,p_{1,N_\theta}-\frac{p_0}{8h_r^2},p_{2,1},...,p_{2,N_\theta},...,p_{N_r-1,1},...,p_{N_r-1,N_\theta}]^T.$$
+
+        容易看出$A$是不可约对角占优矩阵, 可知$A$可逆. 我们希望使用对称正定矩阵的迭代法例如共轭梯度法求解以提高效率,
+         因此考虑将该线性系统对称化, 将第$i$块行乘以$i$, 得
+         $$\tilde{A}=\frac{1}{h_r^2}\begin{pmatrix}
+            2I+\displaystyle\frac{T}{h_\theta^2} +\frac{\vec{1}\otimes\vec{1}^T}{2N_\theta} & \displaystyle-\frac{3}{2}I  & & & \\
+            \displaystyle-\frac{3}{2}I & 2\cdot 2I+\displaystyle\frac{T}{2h_\theta^2} & \displaystyle-\frac{5}{2}I & & \\
+             & \ddots & \ddots & \ddots & \\
+             & & \displaystyle-\frac{2i-1}{2}I & 2I+\displaystyle\frac{T}{ih_\theta^2} & \displaystyle-\frac{2i+1}{2}I \\
+             & & & \ddots &\ddots \\
+             & & & \displaystyle-\frac{2N_r-3}{2}I & 2I+\displaystyle\frac{T}{(N_r-1)h_\theta^2} 
+        \end{pmatrix}, $$
+
+        $$ U = [U_{1,1},U_{1,2},...,U_{1,N_\theta},U_{2,1},...,U_{2,N_\theta},...,U_{N_r-1,1},...,U_{N_r-1,N_\theta}]^T, $$
+        $$ \tilde{P} = [p_{1,1}-\frac{p_0}{8h_r^2},p_{1,2}-\frac{p_0}{8h_r^2},...,p_{1,N_\theta}-\frac{p_0}{8h_r^2},2p_{2,1},...,2p_{2,N_\theta},...,(N_r-1)p_{N_r-1,1},...,(N_r-1)p_{N_r-1,N_\theta}]^T. $$
+
+        求解线性系统$\tilde{A}U=\tilde{P}$可以使用共轭梯度法或预优共轭梯度法快速求解.
+    \end{subsection}
+    \begin{subsection}{相容性分析}
+        令$u_{i,j} = u(r_i,\theta_j)$. 我们计算$(i,j)$处差分格式的局部截断误差.
+
+        对$i\neq 0,N$, 由差分格式及Taylor展开可知, 
+        $$\mathcal{L}_h u_{i,j} = \frac{u_{i+1,j}-2u_{i,j}+u_{i-1,j}}{h_r^2} + \frac{u_{i+1,j}-u_{i-1,j}}{2r_i} + \frac{1}{r_i^2}\frac{u_{i,j+1}-2u_{i,j}+u_{i,j-1}}{h_\theta^2}$$
+        $$ = \bigg[u_{rr}+\frac{1}{r}u_r+\frac{1}{r^2}u_{\theta\theta}\bigg]_{(r_i,\theta_j)} + \frac{1}{12}\frac{\partial^4 }{\partial r^4}u(\xi_1,\theta_j)h_r^2 + \frac{1}{6r_i}\frac{\partial^3 }{\partial r^3}u(\xi_2,\theta_j)h_r^2 + \frac{1}{12 r_i^2}\frac{\partial^4 }{\partial \theta^4}u(r_i,\xi_3)h_\theta^2,$$
+        其中$\xi_1,\xi_2\in(r_{i-1},r_{i+1}),\xi_3\in(\theta_{j-1},\theta_{j+1})$.
+        注意到, $$\frac{\partial^4 }{\partial \theta^4}u = r\cdot(54\text{项形如}r^i\sin^ja\theta\cos^m b\theta\frac{\partial^k u}{\partial x^l\partial y^{k-l}},k=1,2,3,4)$$
+        % r^4\big(\sin^4\theta\frac{\partial^4 u}{\partial x^4} - 4\sin^3\theta\cos\theta\frac{\partial^4 u}{\partial x^3\partial y} + 
+        %6\sin^2\theta\cos^2\theta\frac{\partial^4 u}{\partial x^2y^2} - 4\sin\theta\cos^3\theta\frac{\partial^4 u}{\partial x\partial y^3} + \cos^4\theta\frac{\partial^4 u}{\partial y^4}\big),$$
+
+        $$\frac{\partial^4 }{\partial r^4}u = \cos^4\theta\frac{\partial^4 u}{\partial x^4} + 4\cos^3\theta\sin\theta\frac{\partial^4 u}{\partial x^3\partial y} + 
+        6\cos^2\theta\sin^2\theta\frac{\partial^4 u}{\partial x^2y^2} + 4\cos\theta\sin^3\theta\frac{\partial^4 u}{\partial x\partial y^3} + \sin^4\theta\frac{\partial^4 u}{\partial y^4},$$
+
+        $$\frac{\partial^3 }{\partial r^3}u = \cos^3\theta\frac{\partial^3 u}{\partial x^3} + 3\cos^2\theta\sin\theta\frac{\partial^3 u}{\partial x^2\partial y} + 
+        3\cos\theta\sin^2\theta\frac{\partial^3 u}{\partial xy^2} + \sin^3\theta\frac{\partial^3 u}{\partial y^3} ,$$
+
+        因此若令$$M_k=\max_{x^2+y^2\leq 1}\bigg\{ |\frac{\partial^k }{\partial x^i\partial y^{k-i}}u(x,y)|:i=0,1,...,k\bigg\}, M=\max_{k=1,2,3,4}M_k,$$ 则局部截断误差
+        \begin{align*}
+            |\mathcal{T}_h u_{i,j}| &\leq \frac{1}{12}(|\cos\theta|+|\sin\theta|)^4M_4h_r^2 + \frac{1}{6r_i}(|\cos\theta|+|\sin\theta|)^3M_3h_r^2 + \frac{54}{12r_i}Mh_\theta^2 \\
+        &\leq (\frac{1}{3} + \frac{\sqrt{2}}{3r_i})Mh_r^2 + \frac{9}{2r_i}Mh_\theta^2.
+        \end{align*}
+        
+        对$i=0$, 为简化过程, 下式中出现的导数默认在原点, 并且记$h_\theta=\phi$.
+        \begin{align*}
+            \mathcal{L}_h u_0  &= \frac{1}{h_r^2}\bigg(-u_0+\frac{1}{N_\theta}\sum_{j=1}^{N_\theta} \big[ u_0 + u_x\cos(j\phi)h_r + u_y\sin(j\phi)h_r  \\
+            &\ +(\frac{1}{2}u_{xx}\cos^2(j\phi) + u_{xy}\cos(j\phi)\sin(j\phi) + \frac{1}{2}u_{yy}\sin^2(j\phi))h_r^2 \\
+            &\ +(\frac{1}{6}u_{xxx}\cos^3(j\phi) + \frac{3}{6}u_{xxy}\cos^2(j\phi)\sin(j\phi)+\frac{3}{6}u_{xyy}\cos(j\phi)\sin^2(j\phi) + \frac{1}{6}u_{yyy}\sin^3(j\phi))h_r^3 \\
+            &\ +(\frac{1}{24}u_{xxxx}\cos^4(j\phi) + \frac{4}{24}u_{xxxy}\cos^3(j\phi)\sin(j\phi) + \frac{6}{24}u_{xxyy}\cos^2(j\phi)\sin^2(j\phi)  \\
+            &\ + \frac{4}{24}u_{xyyy}\cos(j\phi)\sin^3(j\phi) + \frac{1}{24}u_{yyyy}\sin^4(j\phi))h_r^4 +O(h_r^5)\big]\bigg)
+        \end{align*}
+            
+        由$\sum_{j=1}^{N_\theta} \cos(j\phi) = \sum_{j=1}^{N_\theta} \sin(j\phi) = 0$, $\cos^2(j\phi) = \frac{1-\cos(2j\phi)}{2},\sin(j\phi)\cos(j\phi)=\frac{\sin(2j\phi)}{2}$及类似的恒等式, 
+        可得$$\mathcal{L}_h u_0 = \frac{1}{4}\Delta u + O(h_r^2), $$
+        $$| \mathcal{T}_h u_0 |\leq \frac{M_4}{6}h_r^2.$$
+    \end{subsection}
+    \begin{subsection}{稳定性与收敛性分析}
+        由差分格式, 可以看出$\mathcal{L}_hU_{i,j}$中$U_{i,j}$的系数恒为负, 且其绝对值等于出现的其余项的系数绝对值之和. 又因为该格式显然是$J_D$连通的(书上定义), 因此必然满足最大值原理, 即非负最大值必然取在边界$r=1$上.
+        
+        考虑非负比较函数$\Phi(r,\theta)=r$, 于是$\forall i\neq 0,N$,
+        $$\mathcal{L}_h\Phi_{i,j} = \frac{1}{r_i}=:C_i, $$
+        对$i=0$, 
+        $$\mathcal{L}_h\Phi_0 = \frac{1}{h_r}=:C_0,$$
+        将内部网格点分为$N_r$组, $J_k:=\{(r_k,\theta_j):j=1,2,...,N_\theta\},k=0,1,2,...,N_r-1$. 与书上定理1.6, 1.7类似, 可得误差$e_{i,j}$:
+
+        $$\max_{i,j}|e_{i,j}|\leq \big(\max_{i,j}\Phi_{i,j}\big)\bigg(\max_{k=0,1,...,N_r-1}\big\{ C_k^{-1}\max_{j=1,...,N_\theta}|\mathcal{T}_h u_{k,j}|\big\} \bigg)$$
+        $$\leq \max\{\frac{1}{6}M_4h_r^3,(\frac{1}{3}+\frac{\sqrt{2}}{3})Mh_r^2 + \frac{9}{2}Mh_\theta^2\} = (\frac{1}{3}+\frac{\sqrt{2}}{3})Mh_r^2 + \frac{9}{2}Mh_\theta^2, $$
+
+        即误差阶为$O(h_r^2+h_\theta^2)$. 
+    \end{subsection}
+\end{section}
+
+\begin{section}{计算结果}
+取参数为$\alpha=4,\beta=8,\bar{R}_0=0.6$, 网格参数为$N_r=N_\theta=160$. 使用共轭梯度法求解, 停机条件为残量$\|\tilde{p}-\tilde{A}U\|_\infty\leq 0.01$, 初值为Jacobi迭代一步的结果(右端项除以系数矩阵的对角元),
+共轭梯度法迭代1378步后得到计算结果如下:
+\begin{figure}[htbp]
+\begin{minipage}[t]{0.35\linewidth}
+\centering
+\includegraphics[height=4.5cm,width=7.5cm]{Deflection,alpha=4,beta=8,R0=0.6.jpg}
+\caption{Deflection}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\centering
+\includegraphics[height=4.5cm,width=7.5cm]{Load,alpha=4,beta=8,R0=0.6.jpg}
+\caption{Load}
+\end{minipage}
+\caption{Surface of deflection and load when $\alpha=4,\beta=8,\bar{R}_0=0.6$}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{minipage}[t]{0.35\linewidth}
+\centering
+\includegraphics[scale = 0.09]{Deflection_contour,alpha=4,beta=8,R0=0.6.jpg}
+\caption{Deflection}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\centering
+\includegraphics[scale = 0.09]{Load_contour,alpha=4,beta=8,R0=0.6.jpg}
+\caption{Load}
+\end{minipage}
+\caption{Contour of deflection and load when $\alpha=4,\beta=8,\bar{R}_0=0.6$}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[scale=0.06]{DeflecLoadOnY,alpha=4,beta=8,R0=0.6.jpg}
+    \caption{Deflction and load on y-axis when $\alpha=4,\beta=8,\bar{R}_0=0.6$}
+\end{figure}
+
+取参数为$\alpha=8,\beta=2,\bar{R}_0=0.2$, 网格参数为$N_r=N_\theta=160$. 使用共轭梯度法求解, 停机条件为残量$\|\tilde{p}-\tilde{A}U\|_\infty\leq 0.01$, 初值为Jacobi迭代一步的结果(右端项除以系数矩阵的对角元),
+共轭梯度法迭代1367步后得到计算结果如下:
+\begin{figure}[htbp]
+\begin{minipage}[t]{0.35\linewidth}
+\centering
+\includegraphics[height=4.5cm,width=7.5cm]{Deflection,alpha=8,beta=2,R0=0.2.jpg}
+\caption{Deflection}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\centering
+\includegraphics[height=4.5cm,width=7.5cm]{Load,alpha=8,beta=2,R0=0.2.jpg}
+\caption{Load}
+\end{minipage}
+\caption{Surface of deflection and load when $\alpha=8,\beta=2,\bar{R}_0=0.2$}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{minipage}[t]{0.35\linewidth}
+\centering
+\includegraphics[scale = 0.07]{Deflection_contour,alpha=8,beta=2,R0=0.2.jpg}
+\caption{Deflection}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.5\linewidth}
+\centering
+\includegraphics[scale = 0.07]{Load_contour,alpha=8,beta=2,R0=0.2.jpg}
+\caption{Load}
+\end{minipage}
+\caption{Contour of deflection and load when $\alpha=8,\beta=2,\bar{R}_0=0.2$}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.05]{DeflecLoadOnY,alpha=8,beta=2,R0=0.2.jpg}
+    \caption{Deflction and load on y-axis when $\alpha=8,\beta=2,\bar{R}_0=0.2$}
+\end{figure}
+
+\end{section}
+
+\begin{section}{结果分析}
+对第一组数据, 该参数的选取与提供的参考文章一致, 最终得到的结果($y$轴上挠度与负载的变化图)与文章中的结果类似, 
+因此可以一定程度上验证了极坐标差分格式得到了正确的结果. 并且由计算的两组数据图像均可看出, 挠度(Deflection)近似集中在负载(Load)集中的地方,
+且挠度(Deflection)的分布会比负载(Load)的分布更不集中.
+\end{section}
+\end{document}
