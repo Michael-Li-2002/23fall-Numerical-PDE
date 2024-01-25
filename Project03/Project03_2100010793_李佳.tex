@@ -1,0 +1,618 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+% \usepackage[showframe]{geometry} %调整页边距showframe显示框架
+\usepackage{amsmath}  %数学环境
+\usepackage{paralist,bbding,pifont} %罗列环境
+\usepackage{lmodern}  %中文环境与amsmath格式冲突
+\usepackage{array,graphicx}  %插入表格、图片
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{appendix}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tocloft}  %目录
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\renewcommand\cftsecdotsep{\cftdotsep}
+\renewcommand\cftsecleader{\cftdotfill{\cftsecdotsep}}
+\renewcommand {\cftdot}{$ \cdot $}
+\renewcommand {\cftdotsep}{1.5}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[a4paper, portrait, margin=2.5cm]{geometry}
+\renewcommand{\baselinestretch}{1.25} %行间距取多倍行距（设置值为1.5）
+\setlength{\baselineskip}{20pt} 
+\usepackage{tikz}
+%\documentclass[tikz]{stanalone}	% 
+\usepackage{pgfplots}	
+\pgfplotsset{compat=newest}
+%\usetikzlibrary{arrows.meta}
+
+\usepackage{listings}%插入代码
+\usepackage{color}
+\lstset{%代码格式的配置
+extendedchars=false,            % Shutdown no-ASCII compatible
+language=Matlab,                % ！！！选择代码的语言
+basicstyle=\footnotesize\tt,    % the size of the fonts that are used for the code
+tabsize=3,                            % sets default tabsize to 3 spaces
+numbers=left,                   % where to put the line-numbers
+numberstyle=\tiny,              % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it's 1 each line
+                                % will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code   %
+keywordstyle=\color[rgb]{0,0,1},                % keywords
+commentstyle=\color[rgb]{0.133,0.545,0.133},    % comments
+stringstyle=\color[rgb]{0.627,0.126,0.941},      % strings
+backgroundcolor=\color{white}, % choose the background color. You must add \usepackage{color}
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,                   % adds a frame around the code
+captionpos=b,                   % sets the caption-position to bottom
+breaklines=true,                % sets automatic line breaking
+breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+title=\lstname,                 % show the filename of files included with \lstinputlisting;
+                                % also try caption instead of title
+mathescape=true,escapechar=?    % escape to latex with ?..?
+escapeinside={\%*}{*)},         % if you want to add a comment within your code
+%columns=fixed,                  % nice spacing
+%morestring=[m]',                % strings
+%morekeywords={%,...},%          % if you want to add more keywords to the set
+%    break,case,catch,continue,elseif,else,end,for,function,global,%
+%    if,otherwise,persistent,return,switch,try,while,...},%
+ }
+%% 页眉
+\usepackage{fancyhdr}
+\newcommand{\myname}{李佳}
+\newcommand{\myid}{2100010793}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\myid}
+\lhead{\myname}
+\cfoot{\thepage}
+
+%%%% Declare %%%
+\DeclareMathOperator{\Ran}{Ran}
+\DeclareMathOperator{\Dom}{Dom}
+\DeclareMathOperator{\Rank}{Rank}
+
+\newcommand{\md}{\mathrm{d}}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mbF}{\mathbb{F}}
+%%% Declare %%%
+\newtheorem{innercustomthm}{Problem}
+\newenvironment{prob}[1]
+{\renewcommand\theinnercustomthm{#1}\innercustomthm}
+{\endinnercustomthm}
+
+%%设置
+\title{偏微分方程数值解$\ \ $第三次上机报告}
+\author{李佳~2100010793}
+\date{}
+
+%%正文
+
+\begin{document}
+\zihao{-4}
+\maketitle
+\begin{section}{问题描述}
+    针对模型问题$$\left\{\begin{array}{ll}
+        u_t = u_{xx}, &0<x<1,t>0,\\
+        u(x,0)=u^0(x), & 0\leq x \leq 1,\\
+        u(0,t) = u(1,t) = 0, & t>0.
+    \end{array}\right.$$
+    分别选一个光滑的、一个连续但有间断导数的、和一个分片连续的初始函数, 
+    用$\theta=0,\dfrac{1}{2}-\dfrac{1}{12\mu},\dfrac{1}{2},1$的$\theta$格式, 对$N=8,16,...,128$分别取适当的时间步长$\tau$, 
+    计算数值解. 在$t=0.1,1,10$处, 将$\theta$格式的逼近误差$e_\theta$分别视为$N$和计算到相应时间所需总运算量的函数, 在双对数坐标图中
+    显示其收敛性态和收敛速度.
+\end{section}
+\begin{section}{数值方法及分析}
+    \begin{subsection}{$\theta$格式的相容性、稳定性}
+        $\theta$格式为:
+        \begin{equation}
+            U_j^{m+1} - U_j^m = (1-\theta)\mu\cdot \delta_x^2 U_j^m + \theta\mu\cdot \delta_x^2 U_j^{m+1}
+        \end{equation}
+        在书中及书后习题中已经证明了如下结论：
+
+        \noindent\textbf{(1) 相容性} 对充分光滑的解$u(x,t)$, 其局部截断误差
+        $$LTE=\left\{\begin{array}{ll}
+            O(\tau^2+h^2), &\text{当}\theta=\frac{1}{2}\text{时},\\
+            O(\tau^2+h^4), &\text{当}\theta=\frac{1}{2}-\frac{1}{12\mu}\text{时},\\
+            O(\tau+h^2),   &\text{其它情况}。
+        \end{array}\right.$$
+
+        \noindent\textbf{(2) 稳定性} 
+
+        (i)其满足$L^\infty$稳定性的条件为$2\mu(1-\theta)\leq 1$;
+
+        (ii) 其满足$L^2$稳定性的条件为
+        $$\left\{\begin{array}{ll}
+            2\mu(1-2\theta)\leq 1, &\text{当}0\leq\theta<\frac{1}{2}\text{时},\\
+            \text{无条件}, &\text{当}\frac{1}{2}\leq\theta\leq 1\text{时}.
+        \end{array}\right.$$
+    \end{subsection}
+\end{section}
+\begin{section}{具体实现细节}
+    \begin{subsection}{三组初值的选取}
+        \noindent\textbf{(1) 光滑初值} 令$u^0=\sin(\pi x)$, 可得$u(x,t)=\exp(-\pi^2 t)\sin(\pi x)$.
+        
+        \noindent\textbf{(2) 连续但导数间断的初值} 令$u^0=\max(\sin(2\pi x),0)$, 可得
+        $$u(x,t) = \frac{\exp(-4\pi^2 t)}{2}\sin(2\pi x) + \sum_{m=1}^\infty \frac{4(-1)^m\exp(-\pi^2(2m-1)^2t)}{\pi(2m+1)(2m-3)} \sin((2m-1)\pi x).$$
+
+        \noindent\textbf{(3) 分片连续初值} 令$$u_0(x) = \left\{\begin{array}{ll}
+            x, & x<\frac{1}{2},\\
+            \frac{1}{4}, & x=\frac{1}{2},\\
+            0, & \frac{1}{2}<x\leq 1,
+        \end{array}\right.$$
+        $$u(x,t) = \sum_{k=1}^\infty \frac{-k\pi\cos(k\pi/2)+2\sin(k\pi/2)}{k^2\pi^2}\exp(-k^2\pi^2 t)\sin(k\pi x).$$
+
+        \begin{figure}[htbp]
+            \begin{minipage}[t]{0.3\linewidth}
+            \centering
+            \includegraphics[scale = 0.09]{u0_data_1.jpg}
+            \caption{光滑初值}
+            \end{minipage}%
+            \hfill
+            \begin{minipage}[t]{0.33\linewidth}
+                \centering
+                \includegraphics[scale = 0.09]{u0_data_2.jpg}
+                \caption{连续但导数间断的初值}
+            \end{minipage}%
+            \hfill
+            \begin{minipage}[t]{0.3\linewidth}
+            \centering
+            \includegraphics[scale = 0.09]{u0_data_3.jpg}
+            \caption{分片连续初值}
+            \end{minipage}
+            \caption{各初值的图像}
+        \end{figure}
+    \end{subsection}
+    \begin{subsection}{误差$e_\theta$的计算}
+        在计算误差时, 注意到由于终止时间$t$可能并非时间步长$\tau$的整数倍, 为避免在$e_\theta$中引入因时间不匹配导致的误差
+        (最后一个时间层的数值解$U^{M}$对应的时间$\tau M\neq t$, 由于最终解衰减较快, 这一差异可能在计算中引入较大的相对误差), 
+        故选择计算真解在$t_r=\tau M$处的值以计算$e_\theta$. 这并不影响我们的目标, 因为$|\tau M-t|\leq\tau<<t$, 依然能反映
+        时间$t$附近数值解的逼近程度.
+
+        计算真解时, 对Fourier级数进行截断. 由于$\sin(kx)$对应于$e^{-k^2\pi^2t}$的衰减, 对本报告中选取的算例, 通过一些测试后发现, 
+        保留至$k\leq 3$已经满足计算的要求(因为算例的Fourier系数均有界, 且$k\geq 4$时, $e^{-k^2\pi^2 t}$已远小于计算出的$e_\theta$).
+    \end{subsection}
+    \begin{subsection}{有间断的函数特殊处理}
+        对光滑的初值, 选取满足某种稳定性的时间步长$\tau$; 但对有间断的函数, 在$\theta\neq 0,1$时, 仅仅取$\tau$不变且$\tau=O(h)$时, 会在间断处产生较大的数值震荡, 有着不良的收敛性态.
+        因此, 本报告也考虑对这种情况特殊处理. 在$t$较小($t\leq t_0=0.005$)时, 我们依然要求$\tau=O(h^2)$且满足$L^\infty$稳定性要求, 待解更光滑后再选取较大的$\tau$.
+    \end{subsection}
+\end{section}
+\begin{section}{计算结果及相应分析}
+    报告中取的时间步长均满足$L^2$稳定性条件.
+    \begin{subsection}{光滑初值}
+    \begin{figure}[!htbp]
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_111.dat}; % }
+                    \addplot table {Ne_112.dat};
+                    \addplot table {Ne_113.dat};
+                    \addplot table {Ne_114.dat};
+                    \addplot table {Ne_115.dat};
+                    \addplot table {Ne_116.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=0.1$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_111.dat}; % }
+                    \addplot table {Ce_112.dat};
+                    \addplot table {Ce_113.dat};
+                    \addplot table {Ce_114.dat};
+                    \addplot table {Ce_115.dat};
+                    \addplot table {Ce_116.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=0.1$}
+        \end{minipage}
+    \end{figure}
+
+    \begin{figure}[!htbp]
+        
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_121.dat}; % }
+                    \addplot table {Ne_122.dat};
+                    \addplot table {Ne_123.dat};
+                    \addplot table {Ne_124.dat};
+                    \addplot table {Ne_125.dat};
+                    \addplot table {Ne_126.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=1$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_121.dat}; % }
+                    \addplot table {Ce_122.dat};
+                    \addplot table {Ce_123.dat};
+                    \addplot table {Ce_124.dat};
+                    \addplot table {Ce_125.dat};
+                    \addplot table {Ce_126.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=1$}
+        \end{minipage}
+    \end{figure}
+
+    \begin{figure}[!htbp]
+        
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_131.dat}; % }
+                    \addplot table {Ne_132.dat};
+                    \addplot table {Ne_133.dat};
+                    \addplot table {Ne_134.dat};
+                    \addplot table {Ne_135.dat};
+                    \addplot table {Ne_136.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=10$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                    $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$},
+                    legend style={at={(0.22,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_131.dat}; % }
+                    \addplot table {Ce_132.dat};
+                    \addplot table {Ce_133.dat};
+                    \addplot table {Ce_134.dat};
+                    \addplot table {Ce_135.dat};
+                    \addplot table {Ce_136.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{光滑初值, $t=10$}
+        \end{minipage}
+    \end{figure}
+    
+    我们记: 格式(1)为显式格式($\mu=\frac{1}{2}$), 格式(2)为经典隐式格式($\tau=h$), 格式(3)为经典隐式格式($\tau=3h^2$), 格式(4)为C-N格式($\tau=h)$, 格式(5)为$\theta$格式取$\theta=\frac{1}{2}-\frac{1}{12\mu}$($\tau=h$), 格式(6)为$\theta$格式取$\theta=\frac{1}{2}-\frac{1}{12\mu}$($\tau=h^2$).
+    取光滑初值时, 由作出的双对数坐标图可以看出:
+    \begin{itemize}
+        \item 由 Figure 5, Figure 7 可看出各算法的收敛速度: 格式(2)为$O(h)$, 格式(1)(3)(4)(5)均为$O(h^2)$, 格式(6)为$O(h^4)$.
+        \item 由 Figure 6 可看出, 将$e_\theta$作为总运算量的函数时, 各算法的收敛效率并不与上面的收敛速度完全一致: 尽管格式(2)仅$O(h)$的收敛阶, 但其较大的时间步长使其可以用更少的运算量达到相同的精度, 从而此时格式(1)(2)(3)有着相近的收敛效率; 
+        而对格式(6), 尽管其依然使用较小的时间步长, 但有着更高的收敛阶$O(h^4)$, 从而此时格式(4)(5)(6)有着相近的收敛效率且快于前者.
+        \item 由Figure 9, Figure 10 可看出, 当终止时间较大时, 满足$L^\infty$稳定性的格式(1)(2)(3)以及有较小的时间步长的格式(6) (实际上(6)的$L^\infty$稳定性条件应为$\tau\leq \frac{5}{6}h^2$. 这里没有完全符合)均在$N$较大时维持了$t$较小时的收敛速度及效率, 但时间步长较大且不满足$L^\infty$稳定性的格式$(4)(5)$则收敛较慢
+        甚至产生了误差增大的现象. 这可能是由于计算步骤增多导致的舍入误差积累, 而没有$L^\infty$稳定性的格式相对难以消去这些误差. 与此同时, 较长的终止时间下, 真解的衰减也很大, 从而也产生了较大的相对误差. 这说明在应用没有$L^\infty$稳定性的算法时, 可以考虑在计算中自适应地找到数值解由于误差产生震荡的时刻, 在之后的短时间内使用较小的时间步长, 以消去震荡, 保持算法的收敛速度.
+        \item 可看出, 格式(1)-(6)中求解的精度、收敛速度与收敛效果最好的均是格式(6).
+    \end{itemize}
+\end{subsection}
+
+\newpage
+\begin{subsection}{连续但导数间断的初值}
+    对这类初值及分片连续初值, 引入格式(4'): 经过预处理($t_0=0.005$之前用$\tau=h^2$)的C-N格式($\tau=h)$, 格式(5'): 经过预处理($t_0=0.005$之前用$\tau=\frac{5}{6}h^2$)的$\theta$格式, 取$\theta=\frac{1}{2}-\frac{1}{12\mu}$($\tau=h$).
+\begin{figure}[!htbp]
+        
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ne_211.dat}; % }
+                \addplot table {Ne_212.dat};
+                \addplot table {Ne_213.dat};
+                \addplot table {Ne_214.dat};
+                \addplot table {Ne_217.dat};
+                \addplot table {Ne_215.dat};
+                \addplot table {Ne_216.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=0.1$}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ce_211.dat}; % }
+                \addplot table {Ce_212.dat};
+                \addplot table {Ce_213.dat};
+                \addplot table {Ce_214.dat};
+                \addplot table {Ce_217.dat};
+                \addplot table {Ce_215.dat};
+                \addplot table {Ce_216.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=0.1$}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[!htbp]
+    
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ne_221.dat}; % }
+                \addplot table {Ne_222.dat};
+                \addplot table {Ne_223.dat};
+                \addplot table {Ne_224.dat};
+                \addplot table {Ne_227.dat};
+                \addplot table {Ne_225.dat};
+                \addplot table {Ne_226.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=1$}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ce_221.dat}; % }
+                \addplot table {Ce_222.dat};
+                \addplot table {Ce_223.dat};
+                \addplot table {Ce_224.dat};
+                \addplot table {Ce_227.dat};
+                \addplot table {Ce_225.dat};
+                \addplot table {Ce_226.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=1$}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[!htbp]
+    
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ne_231.dat}; % }
+                \addplot table {Ne_232.dat};
+                \addplot table {Ne_233.dat};
+                \addplot table {Ne_234.dat};
+                \addplot table {Ne_237.dat};
+                \addplot table {Ne_235.dat};
+                \addplot table {Ne_236.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=10$}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.5\linewidth}
+        \begin{tikzpicture}[scale=0.9]
+            \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                \addplot table {Ce_231.dat}; % }
+                \addplot table {Ce_232.dat};
+                \addplot table {Ce_233.dat};
+                \addplot table {Ce_234.dat};
+                \addplot table {Ce_237.dat};
+                \addplot table {Ce_235.dat};
+                \addplot table {Ce_236.dat};
+                \label{plot_one}
+                %\addlegendentry{CPU时间}
+            \end{loglogaxis}
+        \end{tikzpicture}
+        \caption{连续但导数间断的初值, $t=10$}
+    \end{minipage}
+\end{figure}
+由双对数坐标图可看出:
+\begin{itemize}
+    \item 由 Figure 11 可看出, 取导数有间断的初值时, 格式(6)不再能达到$O(h^4)$的收敛速度, 仅有$O(h^2)$. 这可能是由于初值的正则性不足导致的. 其它格式的收敛速度与光滑初值的情形没有太多不同.
+    \item 由 Figure 13,14 可看出, $t=1$时, 未预处理的格式(4)的关于$N$的收敛速度及关于总运算量的收敛效率均略有下降, 均不到$O(h^2)$, 且误差的绝对值在有相同的$N$、总运算量时也在各格式里最大. 这说明导数的不连续性带来的震荡产生了额外的误差, 减缓的收敛速度.
+    而预处理后, 在短时间内初值得到了稳定的光滑化, 使得$t\leq 1$时, 格式$(4'),(5')$均在$N$较大时精度和收敛速度均有着大幅提升, 仅次于格式(6).
+    \item 由 Figure 15,16 可看出, $t=10$时, 未预处理的格式(4)的收敛速度很低, 而预处理的格式(4'),(5')的收敛速度有着较大的提升, 但其误差的绝对值在有相同的$N$、总运算量时依然相对格式(1)(2)(3)(6)较大.
+    \item 满足$L^\infty$稳定性或时间步长较小的格式在较大的$t$时均有较好的精度和收敛速度, 它们能较好地控制数值振荡. 
+\end{itemize}
+
+\end{subsection}
+
+\newpage
+\begin{subsection}{分片连续初值}
+    \begin{figure}[!htbp]
+        
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_311.dat}; % }
+                    \addplot table {Ne_312.dat};
+                    \addplot table {Ne_313.dat};
+                    \addplot table {Ne_314.dat};
+                    \addplot table {Ne_317.dat};
+                    \addplot table {Ne_315.dat};
+                    \addplot table {Ne_316.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=0.1$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_311.dat}; % }
+                    \addplot table {Ce_312.dat};
+                    \addplot table {Ce_313.dat};
+                    \addplot table {Ce_314.dat};
+                    \addplot table {Ce_317.dat};
+                    \addplot table {Ce_315.dat};
+                    \addplot table {Ce_316.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=0.1$}
+        \end{minipage}
+    \end{figure}
+    
+    \begin{figure}[!htbp]
+        
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_321.dat}; % }
+                    \addplot table {Ne_322.dat};
+                    \addplot table {Ne_323.dat};
+                    \addplot table {Ne_324.dat};
+                    \addplot table {Ne_327.dat};
+                    \addplot table {Ne_325.dat};
+                    \addplot table {Ne_326.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=1$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_321.dat}; % }
+                    \addplot table {Ce_322.dat};
+                    \addplot table {Ce_323.dat};
+                    \addplot table {Ce_324.dat};
+                    \addplot table {Ce_327.dat};
+                    \addplot table {Ce_325.dat};
+                    \addplot table {Ce_326.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=1$}
+        \end{minipage}
+    \end{figure}
+    
+    \begin{figure}[!htbp]
+        
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=$N$,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ne_331.dat}; % }
+                    \addplot table {Ne_332.dat};
+                    \addplot table {Ne_333.dat};
+                    \addplot table {Ne_334.dat};
+                    \addplot table {Ne_337.dat};
+                    \addplot table {Ne_335.dat};
+                    \addplot table {Ne_336.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=10$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.5\linewidth}
+            \begin{tikzpicture}[scale=0.9]
+                \begin{loglogaxis}[xlabel=总运算量,  ylabel=$L^2$ error,
+                    legend entries = {$(1)\theta=0\ \ \tau=\frac{1}{2}h^2$,$(2)\theta=1\ \ \tau=h$,$(3)\theta=1\ \ \tau=3h^2$,
+                $(4)\theta=\frac{1}{2}\ \ \tau=h$,$(5')\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h$ 预处理,$(6)\theta=\frac{1}{2}-\frac{1}{12\mu}\ \ \tau=h^2$
+                ,$(4')\theta=\frac{1}{2}\ \ \tau=h$ 预处理},
+                legend style={at={(0.12,-0.5)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot table {Ce_331.dat}; % }
+                    \addplot table {Ce_332.dat};
+                    \addplot table {Ce_333.dat};
+                    \addplot table {Ce_334.dat};
+                    \addplot table {Ce_337.dat};
+                    \addplot table {Ce_335.dat};
+                    \addplot table {Ce_336.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{loglogaxis}
+            \end{tikzpicture}
+            \caption{分片连续初值, $t=10$}
+        \end{minipage}
+    \end{figure}
+    由双对数坐标图可看出,
+    \begin{itemize}
+        \item 由 Figure 17,18 可看出, $t=0.1$较小时, 未经预处理的格式(4)的收敛速度明显慢于前两种初值, 低于$O(h)$. 这可能由于$L^\infty$稳定性不满足导致震荡难以控制. 经过预处理的格式(4')(5')有明显改善. 其它格式的收敛速度与连续但导数间断初值的情形差别不大.
+        \item 由 Figure 19,20 可看出, $t=1$时, 格式(4)依然收敛速度很慢, 预处理的格式(4')(5')的精度及收敛速度均有明显改善, 可以仅次于格式(6).
+        \item 由 Figure 21,22 可看出, $t=10$较大时, 格式(4)依然收敛速度很慢, 预处理的格式(4')(5')的收敛速度有明显改善, 但误差绝对值在相同的$N$、总运算量时显著大于格式(1)(2)(3)(6).
+        \item 满足$L^\infty$稳定性或时间步长较小的格式在较大的时间内有着较好的精度和收敛速度, 它们可以很好地控制间断处的震荡.
+        \item 由上一点, 可猜想使用自适应的方法在相同总计算量下获得更快的收敛效率: 计算过程中自适应地找到数值解产生震荡的时刻, 在之后的短时间内使用较小的时间步长, 之后再改用较大的时间步长以降低运算量, 待震荡再次出现后再改用较小步长. 
+    \end{itemize}
+\end{subsection}
+\end{section}
+\end{document}
