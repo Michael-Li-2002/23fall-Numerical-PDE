@@ -1,0 +1,798 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+% \usepackage[showframe]{geometry} %调整页边距showframe显示框架
+\usepackage{amsmath}  %数学环境
+\usepackage{paralist,bbding,pifont} %罗列环境
+\usepackage{lmodern}  %中文环境与amsmath格式冲突
+\usepackage{array,graphicx}  %插入表格、图片
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{appendix}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tocloft}  %目录
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\renewcommand\cftsecdotsep{\cftdotsep}
+\renewcommand\cftsecleader{\cftdotfill{\cftsecdotsep}}
+\renewcommand {\cftdot}{$ \cdot $}
+\renewcommand {\cftdotsep}{1.5}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[a4paper, portrait, margin=2.5cm]{geometry}
+\renewcommand{\baselinestretch}{1.25} %行间距取多倍行距（设置值为1.5）
+\setlength{\baselineskip}{20pt} 
+\usepackage{tikz}
+%\documentclass[tikz]{stanalone}	% 
+\usepackage{pgfplots}	
+\pgfplotsset{compat=newest}
+%\usetikzlibrary{arrows.meta}
+
+\usepackage{listings}%插入代码
+\usepackage{color}
+\lstset{%代码格式的配置
+extendedchars=false,            % Shutdown no-ASCII compatible
+language=Matlab,                % ！！！选择代码的语言
+basicstyle=\footnotesize\tt,    % the size of the fonts that are used for the code
+tabsize=3,                            % sets default tabsize to 3 spaces
+numbers=left,                   % where to put the line-numbers
+numberstyle=\tiny,              % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it's 1 each line
+                                % will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code   %
+keywordstyle=\color[rgb]{0,0,1},                % keywords
+commentstyle=\color[rgb]{0.133,0.545,0.133},    % comments
+stringstyle=\color[rgb]{0.627,0.126,0.941},      % strings
+backgroundcolor=\color{white}, % choose the background color. You must add \usepackage{color}
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,                   % adds a frame around the code
+captionpos=b,                   % sets the caption-position to bottom
+breaklines=true,                % sets automatic line breaking
+breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+title=\lstname,                 % show the filename of files included with \lstinputlisting;
+                                % also try caption instead of title
+mathescape=true,escapechar=?    % escape to latex with ?..?
+escapeinside={\%*}{*)},         % if you want to add a comment within your code
+%columns=fixed,                  % nice spacing
+%morestring=[m]',                % strings
+%morekeywords={%,...},%          % if you want to add more keywords to the set
+%    break,case,catch,continue,elseif,else,end,for,function,global,%
+%    if,otherwise,persistent,return,switch,try,while,...},%
+ }
+%% 页眉
+\usepackage{fancyhdr}
+\newcommand{\myname}{李佳}
+\newcommand{\myid}{2100010793}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\myid}
+\lhead{\myname}
+\cfoot{\thepage}
+
+%%%% Declare %%%
+\DeclareMathOperator{\Ran}{Ran}
+\DeclareMathOperator{\Dom}{Dom}
+\DeclareMathOperator{\Rank}{Rank}
+
+\newcommand{\md}{\mathrm{d}}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mbF}{\mathbb{F}}
+%%% Declare %%%
+\newtheorem{innercustomthm}{Problem}
+\newenvironment{prob}[1]
+{\renewcommand\theinnercustomthm{#1}\innercustomthm}
+{\endinnercustomthm}
+
+%%设置
+\title{偏微分方程数值解$\ \ $第四次上机报告}
+\author{李佳~2100010793}
+\date{}
+
+%%正文
+
+\begin{document}
+\zihao{-4}
+\maketitle
+\begin{section}{问题描述}
+    考虑Burgers方程的初值问题:
+    $$\left\{\begin{array}{ll}
+        \frac{\partial u}{\partial t} + \frac{1}{2}\cdot \frac{\partial u^2}{\partial x}=0, & x\in\mathbb{R},t\geq 0\\
+        u(x,0) = 1, & if\ x<0\\
+        u(x,0) = 0, & if\ x\geq 0.
+    \end{array}\right.$$
+    分别取$h=0.1,0.01,0.001,0.0001$, 在$t=0.2,0.4,0.6,0.8,1.0$处比较:
+
+    (1) 守恒型和非守恒型迎风格式数值结果;
+
+    (2) 守恒型迎风格式和Lax-Wendroof格式的数值结果.
+\end{section}
+\begin{section}{数值方法及分析}
+    \begin{subsection}{非守恒型迎风格式}
+        从方程的非散度形式$u_t+uu_x=0$出发, 可以直接构造非守恒型的迎风格式:
+        $$U_j^{m+1} = \left\{\begin{array}{ll}
+            U_j^m - \frac{\tau}{h}U_j^m(U_j^m-U_{j-1}^m), & U_j^m \geq 0,\\
+            U_j^m - \frac{\tau}{h}U_j^m(U_{j+1}^m-U_j^m), & U_j^m <0,
+        \end{array}\right.$$
+        \begin{itemize}
+            \item \textbf{相容性: }该格式的$LTE = O(\tau+h)$;
+            \item \textbf{稳定性: }在满足CFL条件: $\frac{U_j^m\tau}{h}\leq 1$时, 满足最大值原理, 并在$L^2$范数下具有线性稳定性.
+            \item \textbf{收敛性: }对初值直接计算容易验证, 对本报告中的Burgers方程初值问题, 每一时刻得到的$u(\cdot,t)=u(\cdot,0)$. 这一解的间断线是$x=0$, 并不是Burgers方程的弱解.
+        \end{itemize}
+
+    \end{subsection}
+    \begin{subsection}{守恒型迎风格式}
+        根据特征线的想法构造数值通量以获得守恒型格式: 令
+        $$a_{j+\frac{1}{2}}^m = \left\{\begin{array}{ll}
+            \frac{1}{2}\cdot\frac{(U_{j+1}^m)^2-(U_j^m)^2}{U_{j+1}^m-U_j^m} = \frac{U_j^m+U_{j+1}^m}{2} ,& U_{j+1}^m\neq U_j^m \\
+            0,&U_j^m = U_{j+1}^m,
+        \end{array}\right.$$
+        $a_{j+\frac{1}{2}}^m$ 的符号反映特征线方向在$x$方向的投影, 亦即物质传输的方向, 因此构造数值通量为
+        $$F_{j+\frac{1}{2}}^{m+\frac{1}{2}} = \left\{\begin{array}{ll}
+            \frac{1}{2}(U_j^m)^2 ,& a_{j+\frac{1}{2}}^m \geq 0 \\
+            \frac{1}{2}(U_{j+1}^m)^2,& a_{j+\frac{1}{2}}^m < 0,
+        \end{array}\right.$$
+        也可写为:
+        $$F_{j+\frac{1}{2}}^{m+\frac{1}{2}} = \frac{1}{4}\bigg((1+sgn(a_{j+\frac{1}{2}}^m))(U_j^m)^2 + (1-sgn(a_{j+\frac{1}{2}}^m))(U_{j+1}^m)^2 \bigg)$$
+        从而得到守恒型迎风格式
+        \begin{align*}
+            U_j^{m+1} &= U_j^m - \frac{\tau}{h}(F_{j+\frac{1}{2}}^{m+\frac{1}{2}}-F_{j-\frac{1}{2}}^{m+\frac{1}{2}}) \\
+                    &=U_j^m -\frac{\tau}{4h}\bigg((1+sgn(a_{j+\frac{1}{2}}^m))(U_j^m)^2 + (1-sgn(a_{j+\frac{1}{2}}^m))(U_{j+1}^m)^2  \\
+                    & - (1+sgn(a_{j-\frac{1}{2}}^m))(U_{j-1}^m)^2 - (1-sgn(a_{j-\frac{1}{2}}^m))(U_{j}^m)^2\bigg)
+        \end{align*}
+        \begin{itemize}
+            \item \textbf{相容性: }该格式的$LTE = O(\tau+h)$;
+            \item \textbf{稳定性: }在满足CFL条件: $\frac{U_j^m\tau}{h}\leq 1$时, 满足最大值原理, 并在$L^2$范数下具有线性稳定性.
+            \item \textbf{收敛性: }在教材中提到: "Lax与Wendroof证明了与守恒律方程相容的守恒型差分格式在一定意义下的收敛的极限必然是守恒律方程的弱解." 因此理论上守恒型迎风格式收敛至Burgers方程的弱解, 间断线$x=\frac{t}{2}$.
+        \end{itemize}
+    \end{subsection}
+    \begin{subsection}{守恒型Lax-Wendroof格式}
+        可以按照推导常系数输运方程Lax-Wendroof格式中Taylor展开的办法, 通量函数记为$f$ (Burgers方程中$f(u)=\frac{1}{2}u^2$), 有:
+        $$u_t=-(f(u))_x,\ \ u_{tt} = [(f(u))_t]_x = [f'(u)(f(u))_x]_x$$
+        对它们中心差分可自然地得到守恒型格式:
+        \begin{align*}
+            U_j^{m+1}&=U_j^m-\frac{\tau}{2h}[f(U_{j+1}^m) - f(U_{j-1}^m)] \\
+                     &+ \frac{\tau^2}{2h^2}\bigg[f'(\frac{U_j^m+U_{j+1}^m}{2})(f(U_{j+1}^m)-f(U_j^m))-f'(\frac{U_{j-1}^m+U_{j}^m}{2})(f(U_{j}^m)-f(U_{j-1}^m)) \bigg],
+        \end{align*}
+        \begin{itemize}
+            \item \textbf{相容性: }该格式的$LTE = O(\tau^2+h^2)$;
+            \item \textbf{稳定性: }在满足CFL条件: $\frac{U_j^m\tau}{h}\leq 1$时, 在$L^2$范数下具有线性稳定性.
+            \item \textbf{收敛性: }该格式也是与守恒律方程相容的守恒型差分格式, 因此理论上守恒型Lax-Wendroof格式收敛至Burgers方程的弱解, 间断线$x=\frac{t}{2}$.
+        \end{itemize}
+    \end{subsection}
+\end{section}
+\begin{section}{具体实现细节}
+    \begin{subsection}{时间步长的选取}
+        理论上由弱解及特征线法, 可知$u=0$或$1$. 为满足稳定性条件, 取$\tau=\frac{1}{2}h$.
+    \end{subsection}
+    \begin{subsection}{数值边界条件的设置}
+        计算的终止时间最大为$t=1.0$, 弱解的间断线$x=\frac{t}{2}$, 因此将计算区域设置为$-1\leq x\leq 1$可在时间范围内包含间断线两侧的数值解. 由初值条件及特征线、弱解间断线的信息, 
+        知只需设置左侧的数值边界条件$u(-1,0)=1$.
+    \end{subsection}
+\end{section}
+\begin{section}{计算结果及相应分析}
+    \begin{subsection}{守恒型与非守恒型迎风格式数值结果}
+   
+    \begin{figure}[!htbp]  % t=0.2
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc11.dat}; % }
+                    \addplot[red,no markers] table {Up11.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc21.dat}; % }
+                    \addplot[red,no markers] table {Up21.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc31.dat}; % }
+                    \addplot[red,no markers] table {Up31.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc41.dat}; % }
+                    \addplot[red,no markers] table {Up41.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.2$, 守恒型与非守恒型迎风格式数值结果}
+    \end{figure}
+    
+
+    \begin{figure}[!htbp] % t=0.4
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc12.dat}; % }
+                    \addplot[red,no markers] table {Up12.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc22.dat}; % }
+                    \addplot[red,no markers] table {Up22.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc32.dat}; % }
+                    \addplot[red,no markers] table {Up32.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc42.dat}; % }
+                    \addplot[red,no markers] table {Up42.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.4$, 守恒型与非守恒型迎风格式数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=0.6
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc13.dat}; % }
+                    \addplot[red,no markers] table {Up13.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc23.dat}; % }
+                    \addplot[red,no markers] table {Up23.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc33.dat}; % }
+                    \addplot[red,no markers] table {Up33.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc43.dat}; % }
+                    \addplot[red,no markers] table {Up43.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.6$, 守恒型与非守恒型迎风格式数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=0.8
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc14.dat}; % }
+                    \addplot[red,no markers] table {Up14.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc24.dat}; % }
+                    \addplot[red,no markers] table {Up24.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc34.dat}; % }
+                    \addplot[red,no markers] table {Up34.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc44.dat}; % }
+                    \addplot[red,no markers] table {Up44.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.8$, 守恒型与非守恒型迎风格式数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=1.0
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc15.dat}; % }
+                    \addplot[red,no markers] table {Up15.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc25.dat}; % }
+                    \addplot[red,no markers] table {Up25.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc35.dat}; % }
+                    \addplot[red,no markers] table {Up35.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Nonconservative Upwind},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc45.dat}; % }
+                    \addplot[red,no markers] table {Up45.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=1.0$, 守恒型与非守恒型迎风格式数值结果}
+    \end{figure}
+
+    由各个时间处的计算结果可知:
+    \begin{itemize}
+        \item 非守恒型迎风格式的计算结果与理论分析一致, 间断线为$x=0$, 不是Burgers方程的弱解. 这说明对于有间断现象的双曲型方程, 用非守恒的数值格式可能无法得到正确的弱解.
+        \item 守恒型迎风格式的计算结果与教材中的注记一致, 间断线为$x=\frac{t}{2}$, 是Burgers方程的弱解(在取通量函数为$f(u)=\frac{1}{2}u^2$时的弱解);
+        \item 两迎风格式在满足CFL条件时均有最大值原理, 计算得到的结果在连续点和间断点处均没有看到数值震荡现象, 验证了迎风格式的稳定性.
+    \end{itemize}
+\end{subsection}
+
+\begin{subsection}{守恒型迎风格式与Lax-Wendroof格式的数值结果}
+    \begin{figure}[!htbp]  % t=0.2
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc11.dat}; % }
+                    \addplot[red,no markers] table {LWc11.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc21.dat}; % }
+                    \addplot[red,no markers] table {LWc21.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc31.dat}; % }
+                    \addplot[red,no markers] table {LWc31.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc41.dat}; % }
+                    \addplot[red,no markers] table {LWc41.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.2$, 守恒型迎风格式、Lax-Wendroof格式的数值结果}
+    \end{figure}
+    
+
+    \begin{figure}[!htbp] % t=0.4
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc12.dat}; % }
+                    \addplot[red,no markers] table {LWc12.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc22.dat}; % }
+                    \addplot[red,no markers] table {LWc22.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc32.dat}; % }
+                    \addplot[red,no markers] table {LWc32.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc42.dat}; % }
+                    \addplot[red,no markers] table {LWc42.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.4$, 守恒型迎风格式、Lax-Wendroof格式的数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=0.6
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc13.dat}; % }
+                    \addplot[red,no markers] table {LWc13.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc23.dat}; % }
+                    \addplot[red,no markers] table {LWc23.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc33.dat}; % }
+                    \addplot[red,no markers] table {LWc33.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc43.dat}; % }
+                    \addplot[red,no markers] table {LWc43.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.6$, 守恒型迎风格式、Lax-Wendroof格式的数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=0.8
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc14.dat}; % }
+                    \addplot[red,no markers] table {LWc14.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc24.dat}; % }
+                    \addplot[red,no markers] table {LWc24.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc34.dat}; % }
+                    \addplot[red,no markers] table {LWc34.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc44.dat}; % }
+                    \addplot[red,no markers] table {LWc44.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=0.8$, 守恒型迎风格式、Lax-Wendroof格式的数值结果}
+    \end{figure}
+
+
+    \begin{figure}[!htbp] % t=1.0
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc15.dat}; % }
+                    \addplot[red,no markers] table {LWc15.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-1}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc25.dat}; % }
+                    \addplot[red,no markers] table {LWc25.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-2}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc35.dat}; % }
+                    \addplot[red,no markers] table {LWc35.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-3}$}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[t]{0.2\linewidth}
+            \begin{tikzpicture}[scale=0.4]
+                \begin{axis}[xlabel=$x$,  ylabel=$u$ ,
+                    legend entries = {Conservative Upwind,Conservative LW},
+                    legend style={at={(0.14,-0.3)},anchor=west}] % sharp plot: 折线图，通过修改此类型，即可完成多种图形绘制
+                    \addplot[blue,no markers] table {Upc45.dat}; % }
+                    \addplot[red,no markers] table {LWc45.dat};
+                    \label{plot_one}
+                    %\addlegendentry{CPU时间}
+                \end{axis}
+            \end{tikzpicture}
+            \caption{$h=10^{-4}$}
+        \end{minipage}
+        \caption{$t=1.0$, 守恒型迎风格式、Lax-Wendroof格式的数值结果}
+    \end{figure}    
+
+
+    由各个时间处的计算结果可知:
+    \begin{itemize}
+        \item 守恒型迎风格式、Lax-Wendroof格式的计算结果与教材中的注记一致, 能明显看到间断线为$x=\frac{t}{2}$, 是Burgers方程的弱解(在取通量函数为$f(u)=\frac{1}{2}u^2$时的弱解);
+        \item 守恒型迎风格式在满足CFL条件时均有最大值原理, 计算得到的结果在连续点和间断点处均没有看到数值震荡现象; 
+        \item 守恒型Lax-Wendroof格式在间断点附近发生震荡, 且震荡位置在间断点$x=\frac{t}{2}$的左侧, 即物质传输的上游方向. 这与常系数的Lax-Wendroof格式的误差分析结果是一致的:
+              Lax-Wendroof格式没有最大值原理, 不能保证极大模一定减小, 因此间断处可能发生数值震荡; Fourier方法得到相位移速度相对较慢, 相位的滞后导致初值间断点处对应的震荡波形会滞后于实际的间断点, 即震荡位置位于物质传输的上游.
+    \end{itemize}
+\end{subsection}
+
+\end{section}
+\end{document}
