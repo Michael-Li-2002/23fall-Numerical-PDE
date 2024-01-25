@@ -1,0 +1,259 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+% \usepackage[showframe]{geometry} %调整页边距showframe显示框架
+\usepackage{amsmath}  %数学环境
+\usepackage{paralist,bbding,pifont} %罗列环境
+\usepackage{lmodern}  %中文环境与amsmath格式冲突
+\usepackage{array,graphicx}  %插入表格、图片
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{appendix}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tocloft}  %目录
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\renewcommand\cftsecdotsep{\cftdotsep}
+\renewcommand\cftsecleader{\cftdotfill{\cftsecdotsep}}
+\renewcommand {\cftdot}{$ \cdot $}
+\renewcommand {\cftdotsep}{1.5}
+\hypersetup{colorlinks=true,linkcolor=black}
+\usepackage[a4paper, portrait, margin=2.5cm]{geometry}
+\renewcommand{\baselinestretch}{1.25} %行间距取多倍行距（设置值为1.5）
+\setlength{\baselineskip}{20pt} 
+
+\usepackage{listings}%插入代码
+\usepackage{color}
+\lstset{%代码格式的配置
+extendedchars=false,            % Shutdown no-ASCII compatible
+language=Matlab,                % ！！！选择代码的语言
+basicstyle=\footnotesize\tt,    % the size of the fonts that are used for the code
+tabsize=3,                            % sets default tabsize to 3 spaces
+numbers=left,                   % where to put the line-numbers
+numberstyle=\tiny,              % the size of the fonts that are used for the line-numbers
+stepnumber=1,                   % the step between two line-numbers. If it's 1 each line
+                                % will be numbered
+numbersep=5pt,                  % how far the line-numbers are from the code   %
+keywordstyle=\color[rgb]{0,0,1},                % keywords
+commentstyle=\color[rgb]{0.133,0.545,0.133},    % comments
+stringstyle=\color[rgb]{0.627,0.126,0.941},      % strings
+backgroundcolor=\color{white}, % choose the background color. You must add \usepackage{color}
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,                   % adds a frame around the code
+captionpos=b,                   % sets the caption-position to bottom
+breaklines=true,                % sets automatic line breaking
+breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+title=\lstname,                 % show the filename of files included with \lstinputlisting;
+                                % also try caption instead of title
+mathescape=true,escapechar=?    % escape to latex with ?..?
+escapeinside={\%*}{*)},         % if you want to add a comment within your code
+%columns=fixed,                  % nice spacing
+%morestring=[m]',                % strings
+%morekeywords={%,...},%          % if you want to add more keywords to the set
+%    break,case,catch,continue,elseif,else,end,for,function,global,%
+%    if,otherwise,persistent,return,switch,try,while,...},%
+ }
+%% 页眉
+\usepackage{fancyhdr}
+\newcommand{\myname}{李佳}
+\newcommand{\myid}{2100010793}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\myid}
+\lhead{\myname}
+\cfoot{\thepage}
+
+%%%% Declare %%%
+\DeclareMathOperator{\Ran}{Ran}
+\DeclareMathOperator{\Dom}{Dom}
+\DeclareMathOperator{\Rank}{Rank}
+
+\newcommand{\md}{\mathrm{d}}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mbF}{\mathbb{F}}
+%%% Declare %%%
+\newtheorem{innercustomthm}{Problem}
+\newenvironment{prob}[1]
+{\renewcommand\theinnercustomthm{#1}\innercustomthm}
+{\endinnercustomthm}
+
+%%设置
+\title{偏微分方程数值解$\ \ $第二次上机报告}
+\author{李佳~2100010793}
+\date{}
+
+%%正文
+
+\begin{document}
+\zihao{-4}
+\maketitle
+\begin{section}{问题描述}
+    考虑两点边值问题$$-u''(x)=f(x),x\in(0,1),u(0)=0,u(1)=1,$$
+    其中$f$由真解$u=(1-e^{-x/\varepsilon})/(1-e^{-1/\varepsilon})$确定, $\varepsilon>0$.
+
+    尝试用非均匀网格上的有限差分格式对不同的$\varepsilon$数值求解上述问题, 尝试理解对一些问题使用非均匀网格的必要性.
+\end{section}
+\begin{section}{数值方法及分析}
+    \begin{subsection}{非均匀网格的构造}
+        由真解$u$的表达式可绘图得到其图像如下图所示:
+        \begin{figure}[!htbp]
+            \centering
+            \includegraphics[scale=0.06]{u(x),eps=0.01.jpg}
+            \caption{the plot of $u(x)$ when $\varepsilon=0.01$}
+        \end{figure}
+        
+        容易看出, 对较小的$\varepsilon$, 其在远离原点的地方取值几乎等于$1$, 导数值几乎为0, 而在靠近原点处增长极快, 原点处形成一个边界层. 
+        因此直观上看, 我们只需对靠近原点处加细网格即可. 我们考虑设一个分界点$bd$, 对$(0,bd)$和$(bd,1)$分别进行均匀剖分. 设左侧节点为$0=x_0<x_1<...<x_M=bd$, 
+        右侧节点为$bd=x_M<x_{M+1}<...<x_{M+N}=1$, 其中对$i\leq M$, $x_{i}-x_{i-1}=h_M:=bd/M$, 对$i>M$, $x_i-x_{i-1}=h_N:=(1-bd)/N$.
+        
+        为更好地确定分界点$bd$, 作以下计算:
+        $$u'(x) = \frac{e^{-x/\varepsilon}}{\varepsilon(1-e^{-1/\varepsilon})},$$
+        $$f(x)=-u''(x) = \frac{e^{-x/\varepsilon}}{\varepsilon^2(1-e^{-1/\varepsilon})},$$
+        $$u^{(4)}(x) = \frac{e^{-x/\varepsilon}}{\varepsilon^4(1-e^{-1/\varepsilon})}.$$
+        可知, $$u'(x)\sim O(1)\Leftarrow x\geq \varepsilon\log(1/\varepsilon),$$
+        $$f(x)\sim O(1)\Leftarrow x\geq 2\varepsilon\log(1/\varepsilon),$$
+        $$u^{(4)}(x)\sim O(1)\Leftarrow x\geq 4\varepsilon\log(1/\varepsilon).$$
+
+        注意到在二维Poisson方程五点差分格式中, 误差为$O(h^2)$, 其中的系数是真解的4阶导数. 类似地, 对两点边值问题, 若使用均匀网格, 误差应为
+        $\|e_h\|\leq \|u^{(4)}\|_\infty h^2$. 因此边界点可以考虑定在$4\varepsilon\log(1/\varepsilon)$处, 使得$(bd,1)$上$u^{(4)}\sim O(1)$, 可以进行一般尺度的均匀网格划分, 
+        而$(0,bd)$上使用加细的网格划分. 在上机计算中, 也试验了以$\varepsilon\log(1/\varepsilon),2\varepsilon\log(1/\varepsilon)$为边界点的情形.
+    \end{subsection}
+    \begin{subsection}{有限差分格式的构造}
+        将原问题写为$-\mathcal{L}u=f$, 记真解为$u$, 数值解为$U$.
+        对$i\neq 0,M,M+N$, 该点处在均匀网格内部, 可以用一般的二阶中心差商逼近二阶导数, 局部截断误差为$O(h^2)$:
+        $$\mathcal{L}_h U_i = \left\{\begin{aligned}
+            \frac{U_{i-1}-2U_i+U_{i+1}}{h_M^2}, & 1\leq i<M;\\
+            \frac{U_{i-1}-2U_i+U_{i+1}}{h_N^2}, & M<i<M+N,
+        \end{aligned}\right.$$
+        差分格式为$-\mathcal{L}_h U_i = f_i:=f(x_i)$.
+
+        对$i=M$, 此处$x_M-x_{M-1}\neq x_{M+1}-x_M$, 用3点的离散:
+        $$\mathcal{L}_h U_M = \frac{2}{h_M+h_N}(-\frac{u_M-u_{M-1}}{h_M}+\frac{u_{M+1}-u_M}{h_N})$$
+        其局部截断误差计算可知为:
+        $$\mathcal{L}_h u_M + f_M= u^{(3)}(x_M)\frac{h_N-h_M}{3} + O(h_M^2+h_N^2) = -f'(x_M)\frac{h_N-h_M}{3} + O(h_M^2+h_N^2),$$
+        故考虑定义差分格式为 $$-\mathcal{L}_h U_M = f_M + f'_M\frac{h_N-h_M}{3},$$
+        则此时的局部截断误差为$O(h^2)$.
+
+        对$i=0,M+N$, 由Dirichlet边界条件得$U_0=0,U_{M+N}=1$.
+
+        如此得到的差分格式显然满足最大值原理, 与二维Poisson方程完全类似的分析可得该格式也是二阶的.
+    \end{subsection}
+    \begin{subsection}{具体实现中矩阵的对称化}
+        直接由差分格式得到的线性方程组系数矩阵为:
+        $$A=\begin{pmatrix}
+            2/h_M^2 & -1/h_M^2 &  &  &  & &   \\
+            -1/h_M^2 & 2/h_M^2 & -1/h_M^2 &  &  & & \\
+             & \ddots & \ddots & \ddots & & & \\
+             & -1/h_M^2 & 2/h_M^2 & -1/h_M^2 &  & & \\
+             & & -2/(h_M+h_N)h_M & 2/h_Mh_N & -2/h_N(h_M+h_N) & & \\
+             & & & -1/h_N^2 & 2/h_N^2 & -1/h_N^2 & \\
+             & & &  & \ddots & \ddots & \\
+             & & &  &  & -1/h_N^2 & 2/h_N^2 \\
+        \end{pmatrix},$$
+        这并不是对称的矩阵, 无法应用共轭梯度法等算法快速求解. 因此考虑将该线性系统对称化, 将第$M$行乘以$(h_M+h_N)/2h_M$, 第$M+1\sim M+N-1$行乘以$h_N/h_M$, 可得:
+        $$\tilde{A}=\begin{pmatrix}
+            2/h_M^2 & -1/h_M^2 &  &  &  & &   \\
+            -1/h_M^2 & 2/h_M^2 & -1/h_M^2 &  &  & &  \\
+             & \ddots & \ddots & \ddots & & & \\
+             & -1/h_M^2 & 2/h_M^2 & -1/h_M^2 &  & & \\
+             & & -1/h_M^2 & (h_M+h_N)/h_M^2h_N & -1/h_Mh_N & & \\
+             & & & -1/h_Mh_N & 2/h_Mh_N & -1/h_Mh_N & \\
+             & & &  & \ddots & \ddots & \\
+             & & &  &  & -1/h_Mh_N & 2/h_Mh_N \\
+        \end{pmatrix},$$
+        又由于矩阵严格对角占优且对角元均为正数, 可知这是对称正定的.
+
+        对应的右端项为
+        $$\tilde{F}=[f_1,...,f_{M-1},\frac{h_M+h_N}{2h_M}(f_M+\frac{h_N-h_M}{3}f_M'),\frac{h_M}{h_N}f_{M+1},...,\frac{h_M}{h_N}f_{M+N-1}]^T$$
+    \end{subsection}
+\end{section}
+
+\begin{section}{计算结果及相应分析}
+    使用共轭梯度法求解对称正定线性系统$\tilde{A}U=\tilde{F}$, 设置停机条件为残量$\|\tilde{F}-\tilde{A}U\|_\infty<10^{-4}$.
+    
+    \noindent\textbf{(1)} 首先对均匀网格的情形计算, 设网格$n$等分, 观察$L^\infty$误差(后面的误差均指$L^\infty$误差)随网格加细及$\varepsilon$的变化, 如下表所示:
+    \begin{table}[!htbp]
+        \centering
+        \begin{tabular}{c|cccc}\hline
+                            & $n=10$     & $n=20$     & $n=40$     & $n=80$     \\ \hline
+        $\varepsilon=0.1$   & 5.273 e-02 & 1.374 e-02 & 3.477 e-03 & 8.713 e-04 \\
+        $\varepsilon=0.01$  & 8.959 e-01 & 7.822 e-01 & 3.689 e-01 & 1.138 e-01 \\
+        $\varepsilon=0.001$ & 0.9000 & 0.9500 & 0.9750 & 0.9869 \\ \hline
+        \end{tabular}
+        \caption{均匀网格$n$等分, 取不同的$\varepsilon,n$时数值解的$L^\infty$误差} 
+        \end{table}
+
+    由此可看出:
+    \begin{itemize}
+        \item 固定网格时, 减小$\varepsilon$会使误差增大;
+        \item 对较大的$\varepsilon(=0.1)$, 加细网格可以减小误差, 且收敛阶大致为$O(h^2)$; 但对较小的$\varepsilon$以及不充分大的$n$, 
+                加细网格对误差的减小速度可能达不到$O(h^2)$一般有的速度, 甚至可能会使误差增大($\varepsilon=0.001$).
+    \end{itemize}
+    
+    由上述结果分析可知, 均匀网格在这类问题下的表现较差, 在网格尺度与$\varepsilon$不匹配时会产生较大的数值振荡. 因此有必要使用非均匀网格求解.
+
+    \
+
+    \noindent\textbf{(2)} 对非均匀网格的情形计算. 首先固定网格点总数不变, 对边界点$bd=\varepsilon\log(1/\varepsilon),2\varepsilon\log(1/\varepsilon),$
+    $4\varepsilon\log(1/\varepsilon)$的情形计算, 
+    观察误差随$bd$与$\varepsilon$的选取的变化, 如下表所示:
+    \begin{table}[!htbp]
+        \centering
+        \begin{tabular}{c|cccc} \hline
+                            & \begin{tabular}[c]{@{}c@{}}Uniform mesh,\\ $n=25$\end{tabular} & \begin{tabular}[c]{@{}c@{}}$bd=\varepsilon\log(1/\varepsilon)$\\ $M=20,N=5$\end{tabular} & \begin{tabular}[c]{@{}c@{}}$bd=2\varepsilon\log(1/\varepsilon)$\\ $M=20,N=5$\end{tabular} & \begin{tabular}[c]{@{}c@{}}$bd=4\varepsilon\log(1/\varepsilon)$\\ $M=20,N=5$\end{tabular} \\ \hline
+        $\varepsilon=0.1$   & 8.8534 e-3                                                     & 7.9752 e-2                                                                               & 8.6032 e-3                                                                                & 1.1711 e-2                                                                                \\
+        $\varepsilon=0.01$  & 0.65533                                                        & 0.020786                                                                                 & 0.015755                                                                                  & 0.063992                                                                                  \\
+        $\varepsilon=0.001$ & 0.9600                                                         & 0.14105                                                                                  & 0.038241                                                                                  & 0.14381                                                                                   \\
+    \hline    
+    \end{tabular}
+    \caption{取不同$\varepsilon$时, 均匀网格与不同的非均匀网格下数值解的$L^\infty$误差}
+        \end{table}
+
+    由计算结果可知, 
+    \begin{itemize}
+        \item 网格点总数相同时, 在$\varepsilon$较大时, 均匀网格与非均匀网格误差相差不大; 但$\varepsilon$较小时, 非均匀网格的数值解误差远小于均匀网格;
+        \item 网格点总数相同时, $bd=2\varepsilon\log(1/\varepsilon)$的网格在不同的$\varepsilon$下均得到了最小的误差.
+    \end{itemize}
+
+    我们还希望探索误差随$M$($(0,bd)$的网格划分个数)与$N$($(bd,1)$的网格划分个数)的变化情况, 计算了固定$N$(固定$M$)时, 误差随$M$(随$N$)及$\varepsilon$的变化情况, 如下表所示:
+    \begin{table}[!htbp]
+        \centering
+        \begin{tabular}{c|cccc}\hline
+                            & $M=10,N=5$ & $M=20,N=5$ & $M=40,N=5$ & $M=80,N=5$ \\ \hline
+        $\varepsilon=0.1$   & 1.339 e-2  & 8.603 e-3  & 8.887 e-3  & 9.571 e-3 \\
+        $\varepsilon=0.01$  & 6.203 e-2  & 1.576 e-2  & 3.969 e-3  & 1.203 e-3 \\
+        $\varepsilon=0.001$ & 1.432 e-1  & 3.824 e-2  & 9.670 e-3  & 2.402 e-3 \\
+    \hline    
+    \end{tabular}
+    \caption{取不同$\varepsilon,M$时, $bd=2\varepsilon\log(1/\varepsilon)$的非均匀网格下数值解的$L^\infty$误差}
+    \end{table}        
+
+    \begin{table}[!htbp]
+        \centering
+        \begin{tabular}{c|cccc}\hline
+                            & $M=20,N=2$ & $M=20,N=4$ & $M=20,N=8$ & $M=20,N=16$ \\ \hline
+        $\varepsilon=0.1$   & 1.290 e-02 & 9.932 e-03 & 6.029 e-03 & 3.501 e-03  \\
+        $\varepsilon=0.01$  & 1.444 e-02 & 1.552 e-02 & 1.615 e-02 & 1.649 e-02  \\
+        $\varepsilon=0.001$ & 3.785 e-02 & 3.817 e-02 & 3.835 e-02 & 3.844 e-02  \\ \hline
+        \end{tabular}
+        \caption{取不同$\varepsilon,N$时, $bd=2\varepsilon\log(1/\varepsilon)$的非均匀网格下数值解的$L^\infty$误差}
+        \end{table}
+    \newpage
+    由两表可知:
+    \begin{itemize}
+        \item 对较大的$\varepsilon(=0.1)$, 仅增加$M$对误差的减少作用不大, 说明此时的边界层附近已经计算地较好了, 主要的误差在边界层外;
+        \item 对较小的$\varepsilon$, 增加$M$显著地减少了误差, 且几乎是按照$O(h^2)$的速度减少, 说明此时主要的误差都在边界层附近;
+        \item 对较大的$\varepsilon(=0.1)$, 仅增加$N$可以减少误差, 这也验证了主要的误差在边界层外;
+        \item 对较小的$\varepsilon$, 增加$N$不能显著减少误差这也验证了此时主要的误差都在边界层附近.
+    \end{itemize}
+\end{section}
+
+
+
+\end{document}
